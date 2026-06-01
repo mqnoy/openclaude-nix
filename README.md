@@ -1,66 +1,48 @@
 # openclaude-nix
 
-Nix package for [OpenClaude](https://github.com/Gitlawb/openclaude) (`@gitlawb/openclaude` on npm).
+Nix package for [OpenClaude](https://github.com/Gitlawb/openclaude) — use Claude Code with any LLM provider.
 
-## Building
+> **Current version:** `0.16.1` (from [`@gitlawb/openclaude`](https://www.npmjs.com/package/@gitlawb/openclaude) on npm)
+
+---
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+  - [NixOS (system-wide)](#nixos-system-wide)
+  - [Home Manager (standalone)](#home-manager-standalone)
+  - [Home Manager (as NixOS module)](#home-manager-as-nixos-module)
+  - [Home Manager with Flakes](#home-manager-with-flakes)
+  - [NixOS with Flakes](#nixos-with-flakes)
+- [Building from Source](#building-from-source)
+- [Updating to a New Version](#updating-to-a-new-version)
+- [Project Structure](#project-structure)
+
+---
+
+## Quick Start
 
 ```bash
+# Clone and build
+git clone https://github.com/mqnoy/openclaude-nix.git
+cd openclaude-nix
 nix-build
-```
 
-The result symlink will point to the built package. You can run it directly:
-
-```bash
+# Run directly from the build output
 ./result/bin/openclaude
 ```
 
-## Updating to a New npm Version
+---
 
-The included `update.sh` script fully automates the update process.
+## Installation
 
-### Auto-update to latest
+### NixOS (system-wide)
 
-```bash
-./update.sh
-```
-
-This will:
-
-1. Query the npm registry for the latest version of `@gitlawb/openclaude`
-2. Generate a new vendored `package-lock.json`
-3. Compute the source tarball SRI hash
-4. Discover the correct `npmDepsHash` via a trial build
-5. Patch all three values (`version`, `hash`, `npmDepsHash`) in `openclaude.nix`
-6. Run a final verification build
-
-### Update to a specific version
-
-```bash
-./update.sh 0.15.0
-```
-
-### Check for updates without changing anything
-
-```bash
-./update.sh --check
-```
-
-### After updating
-
-Commit the changes:
-
-```bash
-git add openclaude.nix packages/openclaude/package-lock.json
-git commit -m "openclaude: <old-version> → <new-version>"
-```
-
-## Usage with NixOS (System-wide)
-
-Add this package to your NixOS configuration:
+Add the package to `environment.systemPackages` in your NixOS configuration:
 
 ```nix
-# /etc/nixos/configuration.nix (or in your flake's NixOS module)
-
+# configuration.nix
 { pkgs, ... }:
 
 let
@@ -71,7 +53,98 @@ in
 }
 ```
 
-If you use flakes and want to reference this repo as an input:
+Then rebuild:
+
+```bash
+sudo nixos-rebuild switch
+```
+
+### Home Manager (standalone)
+
+```nix
+# ~/.config/home-manager/home.nix
+{ pkgs, ... }:
+
+let
+  openclaude = pkgs.callPackage /path/to/openclaude-nix/openclaude.nix {};
+in
+{
+  home.packages = [ openclaude ];
+}
+```
+
+Then apply:
+
+```bash
+home-manager switch
+```
+
+### Home Manager (as NixOS module)
+
+```nix
+# configuration.nix
+{ pkgs, ... }:
+
+let
+  openclaude = pkgs.callPackage /path/to/openclaude-nix/openclaude.nix {};
+in
+{
+  home-manager.users.<your-username> = {
+    home.packages = [ openclaude ];
+  };
+}
+```
+
+Then rebuild:
+
+```bash
+sudo nixos-rebuild switch
+```
+
+### Home Manager with Flakes
+
+```nix
+# flake.nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    openclaude-nix = {
+      url = "github:mqnoy/openclaude-nix";
+      flake = false;
+    };
+  };
+
+  outputs = { nixpkgs, home-manager, openclaude-nix, ... }:
+  let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+  in {
+    homeConfigurations.<your-username> = home-manager.lib.homeManagerConfiguration {
+      inherit pkgs;
+      modules = [
+        ({ pkgs, ... }: {
+          home.username = "<your-username>";
+          home.homeDirectory = "/home/<your-username>";
+          home.stateVersion = "24.11";
+
+          home.packages = [
+            (pkgs.callPackage "${openclaude-nix}/openclaude.nix" {})
+          ];
+        })
+      ];
+    };
+  };
+}
+```
+
+Then apply:
+
+```bash
+home-manager switch --flake .#<your-username>
+```
+
+### NixOS with Flakes
 
 ```nix
 # flake.nix
@@ -79,13 +152,13 @@ If you use flakes and want to reference this repo as an input:
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     openclaude-nix = {
-      url = "github:your-user/openclaude-nix";  # ← adjust to your repo
+      url = "github:mqnoy/openclaude-nix";
       flake = false;
     };
   };
 
   outputs = { self, nixpkgs, openclaude-nix, ... }: {
-    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.<your-hostname> = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
         ({ pkgs, ... }: {
@@ -102,91 +175,69 @@ If you use flakes and want to reference this repo as an input:
 Then rebuild:
 
 ```bash
-sudo nixos-rebuild switch
+sudo nixos-rebuild switch --flake .#<your-hostname>
 ```
 
-## Usage with Home Manager
+---
 
-### Standalone Home Manager
-
-```nix
-# ~/.config/home-manager/home.nix
-
-{ pkgs, ... }:
-
-let
-  openclaude = pkgs.callPackage /path/to/openclaude-nix/openclaude.nix {};
-in
-{
-  home.packages = [ openclaude ];
-}
-```
-
-Apply with:
+## Building from Source
 
 ```bash
-home-manager switch
+git clone https://github.com/mqnoy/openclaude-nix.git
+cd openclaude-nix
+nix-build
 ```
 
-### Home Manager as a NixOS Module
-
-```nix
-# In your NixOS configuration
-
-{ pkgs, ... }:
-
-let
-  openclaude = pkgs.callPackage /path/to/openclaude-nix/openclaude.nix {};
-in
-{
-  home-manager.users.youruser = {
-    home.packages = [ openclaude ];
-  };
-}
-```
-
-### Home Manager with Flakes
-
-```nix
-# flake.nix
-{
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    home-manager.url = "github:nix-community/home-manager";
-    openclaude-nix = {
-      url = "github:your-user/openclaude-nix";  # ← adjust to your repo
-      flake = false;
-    };
-  };
-
-  outputs = { nixpkgs, home-manager, openclaude-nix, ... }:
-  let
-    system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages.${system};
-  in {
-    homeConfigurations.youruser = home-manager.lib.homeManagerConfiguration {
-      inherit pkgs;
-      modules = [
-        ({ pkgs, ... }: {
-          home.username = "youruser";
-          home.homeDirectory = "/home/youruser";
-          home.stateVersion = "24.11";
-
-          home.packages = [
-            (pkgs.callPackage "${openclaude-nix}/openclaude.nix" {})
-          ];
-        })
-      ];
-    };
-  };
-}
-```
-
-Apply with:
+The `result` symlink will point to the store path. Test with:
 
 ```bash
-home-manager switch --flake .#youruser
+./result/bin/openclaude --help
 ```
+
+---
+
+## Updating to a New Version
+
+An automated `update.sh` script handles the entire update workflow.
+
+### Auto-update to the latest npm version
+
+```bash
+./update.sh
+```
+
+This will automatically:
+
+1. Query the npm registry for the latest `@gitlawb/openclaude` version
+2. Generate a new vendored `package-lock.json`
+3. Compute the source tarball SRI hash
+4. Discover the correct `npmDepsHash` via a trial build
+5. Patch `version`, `hash`, and `npmDepsHash` in `openclaude.nix`
+6. Run a final verification build
+
+### Update to a specific version
+
+```bash
+./update.sh 0.15.0
+```
+
+### Check for updates without making changes
+
+```bash
+./update.sh --check
+```
+
+### After updating
+
+Commit and push the changes:
+
+```bash
+git add openclaude.nix packages/openclaude/package-lock.json
+git commit -m "openclaude: <old-version> → <new-version>"
+git push
+```
+
+---
 
 ## Project Structure
 
@@ -198,5 +249,12 @@ home-manager switch --flake .#youruser
 ├── packages/
 │   └── openclaude/
 │       └── package-lock.json          # Vendored lockfile (generated by update.sh)
+├── .gitignore
 └── README.md
 ```
+
+---
+
+## License
+
+This is a packaging repository. OpenClaude itself is maintained at [github.com/Gitlawb/openclaude](https://github.com/Gitlawb/openclaude).

@@ -1,4 +1,4 @@
-{ lib, buildNpmPackage, fetchurl, nodejs, makeWrapper }:
+{ lib, buildNpmPackage, fetchurl, nodejs }:
 
 let
   # Define the target version here
@@ -34,18 +34,14 @@ let
 
     dontNpmBuild = true;
     dontNpmInstall = true;
-    nativeBuildInputs = [ makeWrapper ];
+
 
     installPhase = ''
       mkdir -p $out/lib/node_modules/@gitlawb/openclaude
       cp -a . $out/lib/node_modules/@gitlawb/openclaude/
       
       mkdir -p $out/bin
-      
-      # Wrap the entrypoint script. Check the package's bin/ or dist/ directory 
-      # if the executable target differs slightly across versions.
-      makeWrapper ${nodejs}/bin/node $out/bin/openclaude \
-        --add-flags "$out/lib/node_modules/@gitlawb/openclaude/dist/cli.js"
+      ln -s $out/lib/node_modules/@gitlawb/openclaude/bin/openclaude $out/bin/openclaude
     '';
 
     meta = with lib; {
