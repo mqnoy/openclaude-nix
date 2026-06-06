@@ -2,7 +2,7 @@
 
 Nix package for [OpenClaude](https://github.com/Gitlawb/openclaude) — use Claude Code with any LLM provider.
 
-> **Current version:** `0.16.1` (from [`@gitlawb/openclaude`](https://www.npmjs.com/package/@gitlawb/openclaude) on npm)
+> **Current version:** `0.17.1` (from [`@gitlawb/openclaude`](https://www.npmjs.com/package/@gitlawb/openclaude) on npm)
 
 ---
 
