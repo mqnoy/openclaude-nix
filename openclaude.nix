@@ -16,7 +16,7 @@ let
     };
 
     # Note: replace with the actual deps hash after running the update script
-    npmDepsHash = ""; 
+    npmDepsHash = "sha256-He96ga+N7lQrrxpsTX9rtvgOMaficq7mBuJG7hIs/Bw="; 
     
     inherit nodejs;
     makeCacheWritable = true;
