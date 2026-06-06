@@ -37,74 +37,10 @@ nix-build
 
 ## Installation
 
-### NixOS (system-wide)
-
-Add the package to `environment.systemPackages` in your NixOS configuration:
+### Flakes + Home Manager (Recommended)
 
 ```nix
-# configuration.nix
-{ pkgs, ... }:
-
-let
-  openclaude = pkgs.callPackage /path/to/openclaude-nix/openclaude.nix {};
-in
-{
-  environment.systemPackages = [ openclaude ];
-}
-```
-
-Then rebuild:
-
-```bash
-sudo nixos-rebuild switch
-```
-
-### Home Manager (standalone)
-
-```nix
-# ~/.config/home-manager/home.nix
-{ pkgs, ... }:
-
-let
-  openclaude = pkgs.callPackage /path/to/openclaude-nix/openclaude.nix {};
-in
-{
-  home.packages = [ openclaude ];
-}
-```
-
-Then apply:
-
-```bash
-home-manager switch
-```
-
-### Home Manager (as NixOS module)
-
-```nix
-# configuration.nix
-{ pkgs, ... }:
-
-let
-  openclaude = pkgs.callPackage /path/to/openclaude-nix/openclaude.nix {};
-in
-{
-  home-manager.users.<your-username> = {
-    home.packages = [ openclaude ];
-  };
-}
-```
-
-Then rebuild:
-
-```bash
-sudo nixos-rebuild switch
-```
-
-### Home Manager with Flakes
-
-```nix
-# flake.nix
+# ~/.config/home-manager/flake.nix
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -117,33 +53,30 @@ sudo nixos-rebuild switch
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
   in {
-    homeConfigurations.<your-username> = home-manager.lib.homeManagerConfiguration {
+    homeConfigurations."your-username" = home-manager.lib.homeManagerConfiguration {
       inherit pkgs;
       modules = [
-        # You can use the provided Home Manager module
         openclaude-nix.homeManagerModules.default
-        
-        ({ pkgs, ... }: {
-          home.username = "<your-username>";
-          home.homeDirectory = "/home/<your-username>";
+        {
+          home.username = "your-username";
+          home.homeDirectory = "/home/your-username";
           home.stateVersion = "24.11";
-
-          # Or include the package directly:
-          # home.packages = [ openclaude-nix.packages.${pkgs.system}.default ];
-        })
+        }
       ];
     };
   };
 }
 ```
 
-Then apply:
+Apply changes:
 
 ```bash
-home-manager switch --flake .#<your-username>
+# Update lockfile (required on first run or when updating)
+nix flake update openclaude-nix
+home-manager switch --flake .#your-username
 ```
 
-### NixOS with Flakes
+### Flakes + NixOS
 
 ```nix
 # flake.nix
@@ -154,26 +87,44 @@ home-manager switch --flake .#<your-username>
   };
 
   outputs = { self, nixpkgs, openclaude-nix, ... }: {
-    nixosConfigurations.<your-hostname> = nixpkgs.lib.nixosSystem {
+    nixosConfigurations."your-hostname" = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        # Use the provided NixOS module
         openclaude-nix.nixosModules.default
-        
-        ({ pkgs, ... }: {
-          # Or include the package directly:
-          # environment.systemPackages = [ openclaude-nix.packages.${pkgs.system}.default ];
-        })
       ];
     };
   };
 }
 ```
 
-Then rebuild:
+Apply changes:
 
 ```bash
-sudo nixos-rebuild switch --flake .#<your-hostname>
+nix flake update openclaude-nix
+sudo nixos-rebuild switch --flake .#your-hostname
+```
+
+### Traditional (No Flakes)
+
+If you don't use flakes, use `fetchFromGitHub`:
+
+```nix
+# ~/.config/home-manager/home.nix
+{ pkgs, ... }:
+
+let
+  openclaude-nix = pkgs.fetchFromGitHub {
+    owner = "mqnoy";
+    repo = "openclaude-nix";
+    rev = "main"; # or a specific commit SHA
+    hash = "";    # let it fail once to get the correct hash
+  };
+in
+{
+  home.packages = [ 
+    (pkgs.callPackage "${openclaude-nix}/openclaude.nix" {})
+  ];
+}
 ```
 
 ---
