@@ -109,10 +109,7 @@ sudo nixos-rebuild switch
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager.url = "github:nix-community/home-manager";
-    openclaude-nix = {
-      url = "github:mqnoy/openclaude-nix";
-      flake = false;
-    };
+    openclaude-nix.url = "github:mqnoy/openclaude-nix";
   };
 
   outputs = { nixpkgs, home-manager, openclaude-nix, ... }:
@@ -123,14 +120,16 @@ sudo nixos-rebuild switch
     homeConfigurations.<your-username> = home-manager.lib.homeManagerConfiguration {
       inherit pkgs;
       modules = [
+        # You can use the provided Home Manager module
+        openclaude-nix.homeManagerModules.default
+        
         ({ pkgs, ... }: {
           home.username = "<your-username>";
           home.homeDirectory = "/home/<your-username>";
           home.stateVersion = "24.11";
 
-          home.packages = [
-            (pkgs.callPackage "${openclaude-nix}/openclaude.nix" {})
-          ];
+          # Or include the package directly:
+          # home.packages = [ openclaude-nix.packages.${pkgs.system}.default ];
         })
       ];
     };
@@ -151,20 +150,19 @@ home-manager switch --flake .#<your-username>
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    openclaude-nix = {
-      url = "github:mqnoy/openclaude-nix";
-      flake = false;
-    };
+    openclaude-nix.url = "github:mqnoy/openclaude-nix";
   };
 
   outputs = { self, nixpkgs, openclaude-nix, ... }: {
     nixosConfigurations.<your-hostname> = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
+        # Use the provided NixOS module
+        openclaude-nix.nixosModules.default
+        
         ({ pkgs, ... }: {
-          environment.systemPackages = [
-            (pkgs.callPackage "${openclaude-nix}/openclaude.nix" {})
-          ];
+          # Or include the package directly:
+          # environment.systemPackages = [ openclaude-nix.packages.${pkgs.system}.default ];
         })
       ];
     };
