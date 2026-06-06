@@ -2,7 +2,7 @@
 
 let
   # Define the target version here
-  version = "0.16.1"; # Replace with the latest version published to npm
+  version = "0.17.1"; # Replace with the latest version published to npm
 
   # Main package
   openclaude = buildNpmPackage rec {
@@ -12,11 +12,11 @@ let
     src = fetchurl {
       url = "https://registry.npmjs.org/@gitlawb/openclaude/-/openclaude-${version}.tgz";
       # Note: replace this with the actual tarball hash (run nix build once to let it fail and give you the hash)
-      hash = "sha256-IfR0JP/if6N3tzwYMAgl3VqwysK5HhWZ/NvRUml6fEo="; 
+      hash = "sha256-pCmFqEuJCw0DFGqYJiwq4qQVbTpowx2TXqvIVzZIlDg="; 
     };
 
     # Note: replace with the actual deps hash after running the update script
-    npmDepsHash = "sha256-qa+esnKtVo1K9mB3e4e4qx7zs2WLB9Q8/ymXFsfs+EU="; 
+    npmDepsHash = ""; 
     
     inherit nodejs;
     makeCacheWritable = true;
